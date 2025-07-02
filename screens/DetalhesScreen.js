@@ -9,7 +9,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 export default function DetalhesScreen({ route }) {
-  const { nomeGasto, valor, categoria, data } = route.params || {};
+  const { descricao, valor, tag, data } = route.params || {};
+  // tag pode ser objeto, então mostramos tag.nome
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -20,8 +21,8 @@ export default function DetalhesScreen({ route }) {
           <View style={styles.item}>
             <Ionicons name="document-text-outline" size={22} color="#4B7BEC" />
             <View style={styles.textGroup}>
-              <Text style={styles.label}>Nome</Text>
-              <Text style={styles.valor}>{nomeGasto}</Text>
+              <Text style={styles.label}>Descrição</Text>
+              <Text style={styles.valor}>{descricao}</Text>
             </View>
           </View>
           <View style={styles.divisor} />
@@ -39,7 +40,7 @@ export default function DetalhesScreen({ route }) {
             <Ionicons name="pricetags-outline" size={22} color="#4B7BEC" />
             <View style={styles.textGroup}>
               <Text style={styles.label}>Categoria</Text>
-              <Text style={styles.valor}>{categoria}</Text>
+              <Text style={styles.valor}>{tag ? tag.nome : ''}</Text>
             </View>
           </View>
           <View style={styles.divisor} />
@@ -48,7 +49,7 @@ export default function DetalhesScreen({ route }) {
             <Ionicons name="calendar-outline" size={22} color="#4B7BEC" />
             <View style={styles.textGroup}>
               <Text style={styles.label}>Data</Text>
-              <Text style={styles.valor}>{data}</Text>
+              <Text style={styles.valor}>{data || 'Não informada'}</Text>
             </View>
           </View>
         </View>

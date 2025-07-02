@@ -1,3 +1,5 @@
+// screens/ListaScreen.js
+
 import React from 'react';
 import {
   View,
@@ -8,11 +10,17 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import GastoItem from '../components/GastoItem';
+import AnimatedGastoItem from '../components/AnimatedGastoItem';
 
-export default function ListaScreen({ gastos, limparGastos }) {
+export default function ListaScreen({ gastos, limparGastos, navigation, removerGasto }) {
   const renderizaItem = ({ item }) => {
-    return <GastoItem gasto={item} />;
+    return (
+      <AnimatedGastoItem
+        gasto={item}
+        onPress={() => navigation.navigate('Detalhes', item)}
+        onExcluir={() => removerGasto(item.id)}
+      />
+    );
   };
 
   const renderizaListaVazia = () => (
@@ -35,7 +43,6 @@ export default function ListaScreen({ gastos, limparGastos }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Header com estilo moderno */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Lista de Gastos</Text>
         </View>
@@ -48,7 +55,6 @@ export default function ListaScreen({ gastos, limparGastos }) {
           contentContainerStyle={gastos.length === 0 ? styles.flatListVazia : null}
         />
 
-        {/* Botão flutuante no canto inferior direito */}
         <TouchableOpacity style={styles.botaoFlutuante} onPress={confirmarLimpar}>
           <Text style={styles.textoBotao}>Limpar Tudo</Text>
         </TouchableOpacity>

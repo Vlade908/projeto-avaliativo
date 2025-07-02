@@ -56,7 +56,10 @@ export default function PerfilScreen() {
   }, [avatar]);
 
   const escolherAvatarGenerico = () => {
-    setAvatar(avatarGenerico);
+    const id = Math.floor(Math.random() * 70) + 1;
+    const imageUrl = `https://i.pravatar.cc/150?img=${id}&t=${Date.now()}`;
+    console.log('URL do avatar genérico:', imageUrl);
+    setAvatar(imageUrl);
     setModalVisible(false);
   };
 
@@ -102,7 +105,6 @@ export default function PerfilScreen() {
           />
         </TouchableOpacity>
 
-
         <View style={styles.inptext}>
           <TextInput
             placeholder="Nome"
@@ -118,15 +120,13 @@ export default function PerfilScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
           />
-        
 
           <View style={styles.infoExibicao}>
             <Text style={styles.infoTexto}>Nome: {nome || '-'}</Text>
             <Text style={styles.infoTexto}>Email: {email || '-'}</Text>
           </View>
-
         </View>
-
+        
         <Modal
           visible={modalVisible}
           animationType="fade"
@@ -172,10 +172,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  inptext:{
-    display:'flex',
-    alignItems:'center',
-    width: '60%'
+  inptext: {
+    display: 'flex',
+    alignItems: 'center',
+    width: '60%',
   },
   header: {
     width: '100%',
@@ -199,6 +199,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     borderWidth: 2,
     borderColor: '#4B7BEC',
+    backgroundColor: '#eee', // Para ajudar a visualizar durante o teste
   },
   input: {
     width: '100%',

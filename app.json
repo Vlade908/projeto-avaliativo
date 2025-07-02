@@ -20,7 +20,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.vlade908.snack943575191145455b865776646f521103"
     },
     "web": {
       "favicon": "./assets/favicon.png"

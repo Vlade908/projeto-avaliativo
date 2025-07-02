@@ -1,16 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function GastoItem({ gasto }) {
+export default function GastoItem({ gasto, onPress }) {
   return (
-    <View style={styles.card}>
-      <Text style={styles.nome}>{gasto.nomeGasto || gasto.nome}</Text>
-      <View style={styles.infoRow}>
-        <Text style={styles.valor}>R$ {gasto.valor}</Text>
-        <Text style={styles.categoria}>{gasto.categoria}</Text>
-        <Text style={styles.data}>{gasto.data}</Text>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.card}>
+        <Text style={styles.nome}>{gasto.nomeGasto || gasto.nome}</Text>
+        <View style={styles.infoRow}>
+          <Text style={styles.valor}>R$ {gasto.valor}</Text>
+          <Text style={styles.categoria}>{gasto.categoria}</Text>
+          <Text style={styles.data}>{gasto.data}</Text>
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -21,11 +24,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginVertical: 8,
     marginHorizontal: 12,
-
-    // sombra Android
     elevation: 5,
-
-    // sombra iOS
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15,
