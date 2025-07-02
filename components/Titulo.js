@@ -1,7 +1,7 @@
+// components/Titulo.js
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-// Componente simples para título padrão no topo
 export default function Titulo({ texto }) {
   return (
     <View style={styles.container}>

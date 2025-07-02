@@ -1,5 +1,6 @@
 // App.js
 import 'react-native-reanimated';
+import 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';

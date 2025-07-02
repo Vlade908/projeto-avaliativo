@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
+  Text,
   TextInput,
   StyleSheet,
   TouchableOpacity,
@@ -11,53 +12,44 @@ import {
   Platform,
   Alert,
   useWindowDimensions,
-  Animated,
   AccessibilityInfo,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-
-import Titulo from '../components/Titulo'; 
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function CadastroScreen({ adicionarGasto }) {
   const [descricao, setDescricao] = useState('');
   const [valor, setValor] = useState('');
   const [tagSelecionada, setTagSelecionada] = useState(null);
+  const [dataSelecionada, setDataSelecionada] = useState(new Date());
+  const [mostrarDatePicker, setMostrarDatePicker] = useState(false);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [tags, setTags] = useState([]);
   const [mostrarInputNovaTag, setMostrarInputNovaTag] = useState(false);
   const [novaTagNome, setNovaTagNome] = useState('');
 
-  const [inputErroDescricao, setInputErroDescricao] = useState(false);
-  const [inputErroValor, setInputErroValor] = useState(false);
-  const [inputErroTag, setInputErroTag] = useState(false);
-
-  const [botaoAnim] = useState(new Animated.Value(1));
-
-  const modalAnimOpacity = useRef(new Animated.Value(0)).current;
-  const modalAnimScale = useRef(new Animated.Value(0.8)).current;
+  const [submenuModalVisible, setSubmenuModalVisible] = useState(false);
+  const [submenuTag, setSubmenuTag] = useState(null);
+  const [submenuPos, setSubmenuPos] = useState({ x: 0, y: 0 });
 
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
-  const valorRef = useRef(null);
+  const [editandoTag, setEditandoTag] = useState(null);
+  const [nomeEditado, setNomeEditado] = useState('');
 
   useEffect(() => {
     async function carregarTags() {
       try {
         const json = await AsyncStorage.getItem('@tags');
         if (json) {
-          const tagsSalvas = JSON.parse(json);
-          const tagsComIcone = tagsSalvas.map(t => ({
-            ...t,
-            icon: t.icon ? t.icon : 'pricetag-outline',
-          }));
-          setTags(tagsComIcone);
+          setTags(JSON.parse(json));
         } else {
           const padrao = [
-            { id: '1', nome: 'Alimentação', icon: 'fast-food-outline' },
-            { id: '2', nome: 'Transporte', icon: 'bus-outline' },
-            { id: '3', nome: 'Lazer', icon: 'game-controller-outline' },
+            { id: '1', nome: 'Alimentação' },
+            { id: '2', nome: 'Transporte' },
+            { id: '3', nome: 'Lazer' },
           ];
           setTags(padrao);
           await AsyncStorage.setItem('@tags', JSON.stringify(padrao));
@@ -70,12 +62,8 @@ export default function CadastroScreen({ adicionarGasto }) {
   }, []);
 
   const salvarTags = async (tagsNovas) => {
-    const tagsComIcone = tagsNovas.map(t => ({
-      ...t,
-      icon: t.icon ? t.icon : 'pricetag-outline',
-    }));
-    setTags(tagsComIcone);
-    await AsyncStorage.setItem('@tags', JSON.stringify(tagsComIcone));
+    setTags(tagsNovas);
+    await AsyncStorage.setItem('@tags', JSON.stringify(tagsNovas));
   };
 
   const adicionarNovaTag = async () => {
@@ -88,91 +76,52 @@ export default function CadastroScreen({ adicionarGasto }) {
       Alert.alert('Erro', 'Já existe uma tag com esse nome.');
       return;
     }
-    const nova = { id: String(Date.now()), nome, icon: 'pricetag-outline' };
+    const nova = { id: String(Date.now()), nome };
     const novasTags = [...tags, nova];
     await salvarTags(novasTags);
     setNovaTagNome('');
     setMostrarInputNovaTag(false);
   };
 
-  const abrirModal = () => {
-    setModalVisible(true);
-    setMostrarInputNovaTag(false);
-    modalAnimOpacity.setValue(0);
-    modalAnimScale.setValue(0.8);
-    Animated.parallel([
-      Animated.timing(modalAnimOpacity, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.spring(modalAnimScale, {
-        toValue: 1,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
+  function formatarDataAmigavel(data) {
+    const hoje = new Date();
+    const ontem = new Date();
+    ontem.setDate(hoje.getDate() - 1);
 
-  const fecharModal = () => {
-    Animated.parallel([
-      Animated.timing(modalAnimOpacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(modalAnimScale, {
-        toValue: 0.8,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setModalVisible(false);
-    });
-  };
+    const dataGasto = new Date(data.getFullYear(), data.getMonth(), data.getDate());
+    const dataHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    const dataOntem = new Date(ontem.getFullYear(), ontem.getMonth(), ontem.getDate());
+
+    if (dataGasto.getTime() === dataHoje.getTime()) return 'Hoje';
+    if (dataGasto.getTime() === dataOntem.getTime()) return 'Ontem';
+
+    const nomesMes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    return `${data.getDate()} ${nomesMes[data.getMonth()]} ${data.getFullYear()}`;
+  }
 
   const onAdicionar = () => {
-    const descricaoTrim = descricao.trim();
+    if (!descricao.trim() || !valor.trim() || !tagSelecionada) {
+      Alert.alert('Erro', 'Preencha descrição, valor e selecione uma tag.');
+      return;
+    }
     const valorNum = parseFloat(valor.replace(',', '.'));
-    let valid = true;
-
-    if (!descricaoTrim) {
-      setInputErroDescricao(true);
-      valid = false;
-    } else setInputErroDescricao(false);
-
-    if (!valor.trim() || isNaN(valorNum) || valorNum <= 0) {
-      setInputErroValor(true);
-      valid = false;
-    } else setInputErroValor(false);
-
-    if (!tagSelecionada) {
-      setInputErroTag(true);
-      valid = false;
-    } else setInputErroTag(false);
-
-    if (!valid) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos corretamente.');
-      AccessibilityInfo.announceForAccessibility(
-        'Erro: Preencha descrição, valor e selecione uma categoria.'
-      );
+    if (isNaN(valorNum) || valorNum <= 0) {
+      Alert.alert('Erro', 'Informe um valor válido maior que zero.');
       return;
     }
 
-    Animated.sequence([
-      Animated.timing(botaoAnim, { toValue: 0.7, duration: 100, useNativeDriver: true }),
-      Animated.timing(botaoAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
-    ]).start();
+    const dataFormatada = formatarDataAmigavel(dataSelecionada);
 
     adicionarGasto({
-      descricao: descricaoTrim,
+      descricao: descricao.trim(),
       valor: valorNum,
       tag: tagSelecionada,
+      data: dataFormatada,
     });
-
     setDescricao('');
     setValor('');
     setTagSelecionada(null);
+    setDataSelecionada(new Date());
   };
 
   return (
@@ -180,119 +129,97 @@ export default function CadastroScreen({ adicionarGasto }) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}
     >
-      <Titulo texto="Adicionar Gasto" />
+      <View style={styles.card} accessibilityLabel="formulário de gasto">
+        <Text style={styles.titulo}>Adicionar Gasto</Text>
 
-      <View style={styles.card} accessible accessibilityLabel="Formulário para adicionar gasto">
         <TextInput
           placeholder="Descrição"
-          style={[styles.input, inputErroDescricao && styles.inputErro]}
+          style={styles.input}
           value={descricao}
-          onChangeText={text => {
-            setDescricao(text);
-            if (inputErroDescricao) setInputErroDescricao(false);
-          }}
-          accessibilityLabel="Campo descrição"
-          accessibilityHint="Digite a descrição do gasto"
-          returnKeyType="next"
-          onSubmitEditing={() => valorRef.current?.focus()}
-          blurOnSubmit={false}
+          onChangeText={setDescricao}
+          accessibilityLabel="campo descrição"
         />
 
         <TextInput
-          ref={valorRef}
           placeholder="Valor"
-          style={[styles.input, inputErroValor && styles.inputErro]}
+          style={styles.input}
           keyboardType="decimal-pad"
           value={valor}
-          onChangeText={text => {
-            setValor(text);
-            if (inputErroValor) setInputErroValor(false);
-          }}
-          accessibilityLabel="Campo valor"
-          accessibilityHint="Digite o valor do gasto"
-          returnKeyType="done"
-          onSubmitEditing={onAdicionar}
+          onChangeText={setValor}
+          accessibilityLabel="campo valor"
         />
 
         <TouchableOpacity
-          style={[styles.selectTag, inputErroTag && styles.inputErro]}
-          onPress={abrirModal}
-          accessibilityRole="button"
-          accessibilityLabel="Selecionar categoria"
-          accessibilityHint="Abre modal para selecionar a categoria do gasto"
+          style={styles.input}
+          onPress={() => setMostrarDatePicker(true)}
         >
-          <Text style={{ color: tagSelecionada ? '#000' : '#aaa', fontSize: 16 }}>
+          <Text style={{ color: '#333' }}>
+            Data: {formatarDataAmigavel(dataSelecionada)}
+          </Text>
+        </TouchableOpacity>
+
+        {mostrarDatePicker && (
+          <DateTimePicker
+            value={dataSelecionada}
+            mode="date"
+            display="default"
+            onChange={(event, selectedDate) => {
+              setMostrarDatePicker(false);
+              if (selectedDate) setDataSelecionada(selectedDate);
+            }}
+          />
+        )}
+
+        <TouchableOpacity
+          style={styles.selectTag}
+          onPress={() => setModalVisible(true)}
+          accessibilityLabel="botão selecionar categoria"
+        >
+          <Text style={{ color: tagSelecionada ? '#000' : '#aaa' }}>
             {tagSelecionada ? tagSelecionada.nome : 'Selecionar categoria'}
           </Text>
           <Ionicons name="chevron-down" size={20} color="#aaa" />
         </TouchableOpacity>
 
-        <Animated.View style={{ transform: [{ scale: botaoAnim }] }}>
-          <TouchableOpacity
-            style={styles.botao}
-            onPress={onAdicionar}
-            accessibilityRole="button"
-            accessibilityLabel="Salvar gasto"
-          >
-            <Text style={styles.botaoTexto}>Salvar Gasto</Text>
-          </TouchableOpacity>
-        </Animated.View>
+        <TouchableOpacity
+          style={styles.botao}
+          onPress={onAdicionar}
+          accessibilityLabel="botão salvar gasto"
+        >
+          <Text style={styles.botaoTexto}>Salvar Gasto</Text>
+        </TouchableOpacity>
       </View>
 
       <Modal
+        animationType="fade"
         transparent
         visible={modalVisible}
-        onRequestClose={fecharModal}
-        animationType="none"
+        onRequestClose={() => setModalVisible(false)}
       >
         <Pressable
           style={styles.modalOverlay}
-          onPress={fecharModal}
-          accessible={false}
+          onPress={() => setModalVisible(false)}
+          accessibilityLabel="fechar modal de categorias"
         >
-          <Animated.View
-            style={[
-              styles.modalContent,
-              {
-                opacity: modalAnimOpacity,
-                transform: [{ scale: modalAnimScale }],
-              },
-            ]}
-            accessibilityViewIsModal
-          >
-            <Text style={styles.modalTitulo} accessibilityRole="header">
-              Categorias
-            </Text>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitulo}>Categorias</Text>
 
             <FlatList
               data={tags}
               keyExtractor={(item) => item.id}
-              keyboardShouldPersistTaps="handled"
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[
-                    styles.modalItem,
-                    tagSelecionada?.id === item.id && styles.modalItemSelecionado,
-                  ]}
+                  style={styles.modalItem}
                   onPress={() => {
                     setTagSelecionada(item);
-                    fecharModal();
-                    if (inputErroTag) setInputErroTag(false);
+                    setModalVisible(false);
                   }}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: tagSelecionada?.id === item.id }}
-                  accessibilityLabel={`Categoria ${item.nome}`}
+                  accessibilityLabel={`Selecionar categoria ${item.nome}`}
                 >
-                  <Ionicons
-                    name={item.icon || 'pricetag-outline'}
-                    size={20}
-                    color={tagSelecionada?.id === item.id ? '#4B7BEC' : '#666'}
-                    style={{ marginRight: 12 }}
-                    accessibilityIgnoresInvertColors
-                  />
-                  <Text style={{ fontSize: 16, color: tagSelecionada?.id === item.id ? '#4B7BEC' : '#000' }}>
-                    {item.nome}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Ionicons name="pricetag" size={18} color="#4B7BEC" />
+                    <Text style={{ fontSize: 16 }}>{item.nome}</Text>
+                  </View>
                 </TouchableOpacity>
               )}
               ListFooterComponent={
@@ -303,30 +230,23 @@ export default function CadastroScreen({ adicionarGasto }) {
                       value={novaTagNome}
                       onChangeText={setNovaTagNome}
                       style={styles.inputNovaTag}
-                      autoFocus
-                      accessibilityLabel="Nome da nova categoria"
+                      accessibilityLabel="campo nova categoria"
                     />
-                    <TouchableOpacity
-                      onPress={adicionarNovaTag}
-                      accessibilityRole="button"
-                      accessibilityLabel="Confirmar nova categoria"
-                    >
-                      <Ionicons name="checkmark-circle" size={28} color="#4B7BEC" />
+                    <TouchableOpacity onPress={adicionarNovaTag} accessibilityLabel="confirmar nova categoria">
+                      <Ionicons name="checkmark-circle" size={24} color="#4B7BEC" />
                     </TouchableOpacity>
                   </View>
                 ) : (
                   <TouchableOpacity
                     onPress={() => setMostrarInputNovaTag(true)}
-                    style={styles.novaTagBotao}
-                    accessibilityRole="button"
-                    accessibilityLabel="Adicionar nova categoria"
+                    accessibilityLabel="adicionar nova categoria"
                   >
-                    <Text style={styles.novaTagBotaoTexto}>+ Nova categoria</Text>
+                    <Text style={styles.novaTagBotao}>+ Nova categoria</Text>
                   </TouchableOpacity>
                 )
               }
             />
-          </Animated.View>
+          </View>
         </Pressable>
       </Modal>
     </KeyboardAvoidingView>
@@ -336,126 +256,96 @@ export default function CadastroScreen({ adicionarGasto }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fbff',
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    paddingTop: 0, // sem padding top pois o título já tem
-    justifyContent: 'flex-start',
+    backgroundColor: '#f4f6fc',
+    padding: 20,
+    justifyContent: 'center',
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 24,
-    elevation: 10,
+    borderRadius: 16,
+    padding: 20,
+    elevation: 6,
     shadowColor: '#000',
-    shadowOpacity: 0.07,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 12,
-    marginTop: 16,
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+  },
+  titulo: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 16,
+    color: '#2f3542',
+    textAlign: 'center',
   },
   input: {
-    backgroundColor: '#f1f4f8',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginBottom: 16,
-    fontSize: 17,
-    color: '#333',
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  inputErro: {
-    borderColor: '#e74c3c',
+    backgroundColor: '#f1f3f6',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 12,
+    fontSize: 16,
   },
   selectTag: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#f1f4f8',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    marginBottom: 24,
+    backgroundColor: '#f1f3f6',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 16,
   },
   botao: {
     backgroundColor: '#4B7BEC',
-    paddingVertical: 16,
-    borderRadius: 14,
+    paddingVertical: 14,
+    borderRadius: 10,
     alignItems: 'center',
-    shadowColor: '#4B7BEC',
-    shadowOpacity: 0.4,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 16,
   },
   botaoTexto: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 24,
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    paddingVertical: 24,
-    paddingHorizontal: 28,
+    borderRadius: 16,
+    padding: 20,
     maxHeight: '80%',
-    elevation: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 18,
   },
   modalTitulo: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 16,
-    color: '#222',
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 12,
     textAlign: 'center',
+    color: '#2f3542',
   },
   modalItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e1e4e8',
-  },
-  modalItemSelecionado: {
-    backgroundColor: '#d5e4fd',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#ccc',
   },
   novaTagInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 18,
+    paddingTop: 12,
     gap: 12,
   },
   inputNovaTag: {
     flex: 1,
-    backgroundColor: '#f1f4f8',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 12,
+    backgroundColor: '#f1f3f6',
+    padding: 10,
+    borderRadius: 8,
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#4B7BEC',
   },
   novaTagBotao: {
-    marginTop: 22,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#4B7BEC',
-    alignItems: 'center',
-  },
-  novaTagBotaoTexto: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '700',
+    marginTop: 16,
+    fontSize: 16,
+    color: '#4B7BEC',
+    textAlign: 'center',
   },
 });
