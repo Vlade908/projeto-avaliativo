@@ -2,27 +2,35 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function Titulo({ texto }) {
+export default function Titulo({ children }) {
   return (
-    <View style={styles.container}>
-      <Text style={styles.texto}>{texto}</Text>
+    <View style={styles.wrapper}>
+      <Text style={styles.titulo}>{children}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  wrapper: {
+    width: '100%',
+    paddingTop: 50, // espaço para status bar
+    paddingBottom: 20,
     backgroundColor: '#4B7BEC',
-    paddingVertical: 15,
-    paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#2c5bbf',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    zIndex: 10,
   },
-  texto: {
-    color: 'white',
-    fontSize: 22,
-    fontWeight: 'bold',
+  titulo: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 0.5,
   },
 });

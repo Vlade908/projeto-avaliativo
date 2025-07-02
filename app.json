@@ -4,11 +4,11 @@
     "slug": "snack-94357519-1145-455b-8657-76646f521103",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icone.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icone.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },

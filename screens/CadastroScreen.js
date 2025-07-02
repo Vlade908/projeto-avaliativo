@@ -17,6 +17,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Titulo from '../components/Titulo';
 
 export default function CadastroScreen({ adicionarGasto }) {
   const [descricao, setDescricao] = useState('');
@@ -129,6 +130,7 @@ export default function CadastroScreen({ adicionarGasto }) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}
     >
+      <Titulo style={styles.titulo}>Cadastro</Titulo>
       <View style={styles.card} accessibilityLabel="formulário de gasto">
         <Text style={styles.titulo}>Adicionar Gasto</Text>
 
@@ -188,6 +190,10 @@ export default function CadastroScreen({ adicionarGasto }) {
         >
           <Text style={styles.botaoTexto}>Salvar Gasto</Text>
         </TouchableOpacity>
+      </View>
+
+      <View>
+
       </View>
 
       <Modal
@@ -257,13 +263,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f4f6fc',
-    padding: 20,
-    justifyContent: 'center',
+    justifyContent:"space-between"
+     // espaço para o Titulo fixo
+
   },
   card: {
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
+    marginHorizontal: 20,
     elevation: 6,
     shadowColor: '#000',
     shadowOpacity: 0.1,

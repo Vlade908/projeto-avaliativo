@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,9 @@ import {
   SafeAreaView,
   Alert,
   StatusBar,
+  Platform,
+  KeyboardAvoidingView,
+  Animated,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,6 +25,8 @@ export default function PerfilScreen() {
   const [email, setEmail] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [avatar, setAvatar] = useState(null);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     AsyncStorage.getItem('@perfil_nome').then((valor) => {
@@ -55,10 +60,25 @@ export default function PerfilScreen() {
     }
   }, [avatar]);
 
+  useEffect(() => {
+    if (modalVisible) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [modalVisible, fadeAnim]);
+
   const escolherAvatarGenerico = () => {
     const id = Math.floor(Math.random() * 70) + 1;
     const imageUrl = `https://i.pravatar.cc/150?img=${id}&t=${Date.now()}`;
-    console.log('URL do avatar genérico:', imageUrl);
     setAvatar(imageUrl);
     setModalVisible(false);
   };
@@ -92,25 +112,39 @@ export default function PerfilScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#fff" />
-      <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f9fafb" />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.container}
+      >
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Perfil do Usuário</Text>
+          <Text style={styles.headerTitle}>Meu Perfil</Text>
         </View>
 
-        <TouchableOpacity onPress={() => setModalVisible(true)}>
+        <TouchableOpacity
+          style={styles.avatarContainer}
+          onPress={() => setModalVisible(true)}
+          accessibilityRole="imagebutton"
+          accessibilityLabel="Alterar foto do perfil"
+        >
           <Image
-            source={{ uri: avatar ? avatar : avatarGenerico }}
+            source={{ uri: avatar || avatarGenerico }}
             style={styles.avatar}
+            resizeMode="cover"
           />
+          <View style={styles.cameraIconWrapper}>
+            <Text style={styles.cameraIcon}>📷</Text>
+          </View>
         </TouchableOpacity>
 
-        <View style={styles.inptext}>
+        <View style={styles.form}>
           <TextInput
             placeholder="Nome"
             style={styles.input}
             value={nome}
             onChangeText={setNome}
+            placeholderTextColor="#999"
+            accessibilityLabel="Campo para inserir nome"
           />
           <TextInput
             placeholder="Email"
@@ -119,46 +153,50 @@ export default function PerfilScreen() {
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
+            placeholderTextColor="#999"
+            accessibilityLabel="Campo para inserir email"
           />
-
-          <View style={styles.infoExibicao}>
-            <Text style={styles.infoTexto}>Nome: {nome || '-'}</Text>
-            <Text style={styles.infoTexto}>Email: {email || '-'}</Text>
-          </View>
         </View>
-        
+
         <Modal
           visible={modalVisible}
-          animationType="fade"
-          transparent={true}
+          transparent
+          animationType="none"
           onRequestClose={() => setModalVisible(false)}
         >
-          <View style={styles.modalFundo}>
-            <View style={styles.modalContainer}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPressOut={() => setModalVisible(false)}
+            style={styles.modalOverlay}
+          >
+            <Animated.View style={[styles.modalContainer, { opacity: fadeAnim }]}>
               <TouchableOpacity
-                style={styles.botaoModal}
+                style={styles.modalButton}
                 onPress={escolherAvatarGenerico}
+                activeOpacity={0.7}
               >
-                <Text style={styles.textoBotaoModal}>Usar avatar genérico</Text>
+                <Text style={styles.modalButtonText}>Avatar genérico</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.botaoModal}
+                style={styles.modalButton}
                 onPress={escolherImagemDoDispositivo}
+                activeOpacity={0.7}
               >
-                <Text style={styles.textoBotaoModal}>Escolher foto do aparelho</Text>
+                <Text style={styles.modalButtonText}>Escolher foto</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.botaoModal, styles.botaoCancelar]}
+                style={[styles.modalButton, styles.modalCancelButton]}
                 onPress={() => setModalVisible(false)}
+                activeOpacity={0.7}
               >
-                <Text style={styles.textoBotaoModal}>Cancelar</Text>
+                <Text style={[styles.modalButtonText, styles.modalCancelText]}>Cancelar</Text>
               </TouchableOpacity>
-            </View>
-          </View>
+            </Animated.View>
+          </TouchableOpacity>
         </Modal>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -166,88 +204,116 @@ export default function PerfilScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f9fafb',
   },
   container: {
     flex: 1,
+    paddingHorizontal: 24,
     alignItems: 'center',
-  },
-  inptext: {
-    display: 'flex',
-    alignItems: 'center',
-    width: '60%',
+    justifyContent: 'flex-start',
   },
   header: {
     width: '100%',
-    paddingVertical: 24,
-    backgroundColor: '#4B7BEC',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    marginBottom: 20,
-    elevation: 5,
-    alignItems: 'center',
+    paddingVertical: 32,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    marginBottom: 32,
   },
   headerTitle: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1f2937',
+    textAlign: 'center',
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 40,
   },
   avatar: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    marginBottom: 24,
-    borderWidth: 2,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 3,
     borderColor: '#4B7BEC',
-    backgroundColor: '#eee', // Para ajudar a visualizar durante o teste
+    backgroundColor: '#d1d5db',
+  },
+  cameraIconWrapper: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    backgroundColor: '#4B7BEC',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#4B7BEC',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.7,
+    shadowRadius: 6,
+  },
+  cameraIcon: {
+    color: '#fff',
+    fontSize: 22,
+  },
+  form: {
+    width: '100%',
   },
   input: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    fontSize: 16,
-    marginBottom: 15,
-    color: '#000',
-  },
-  infoExibicao: {
-    marginTop: 10,
-    width: '100%',
-  },
-  infoTexto: {
-    fontSize: 18,
-    marginVertical: 5,
-    color: '#333',
-  },
-  modalFundo: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
     backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 25,
-    width: '80%',
-    alignItems: 'center',
-  },
-  botaoModal: {
-    backgroundColor: '#4B7BEC',
+    borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: 10,
-    marginVertical: 8,
-    width: '100%',
+    fontSize: 18,
+    marginBottom: 20,
+    color: '#374151',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(31, 41, 55, 0.3)',
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 40,
   },
-  textoBotaoModal: {
+  modalContainer: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  modalButton: {
+    backgroundColor: '#4B7BEC',
+    borderRadius: 14,
+    paddingVertical: 16,
+    marginVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#4B7BEC',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+  },
+  modalButtonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
-  botaoCancelar: {
-    backgroundColor: '#d9534f',
+  modalCancelButton: {
+    backgroundColor: '#ef4444',
+  },
+  modalCancelText: {
+    fontWeight: '700',
   },
 });
